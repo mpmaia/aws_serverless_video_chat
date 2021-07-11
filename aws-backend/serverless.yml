@@ -16,6 +16,13 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
 
+  environment:
+    CONTACTS_TABLE: ${self:service}-contacts-${self:provider.stage}
+    USERS_TABLE: ${self:service}-users-${self:provider.stage}
+    CONNECTIONS_TABLE: ${self:service}-connections-${self:provider.stage}
+    USER_ID_INDEX: UserIdIndex
+    USER_EMAIL_INDEX: UserIdIndex
+
 iamRoleStatements:
 #    - Effect: "Allow"
 #      Action:
@@ -31,9 +38,6 @@ iamRoleStatements:
 #            - "Ref" : "ServerlessDeploymentBucket"
 #            - "/*"
 
-environment:
-
-
 #package:
 #  patterns:
 #    - '!exclude-me.js'
@@ -47,3 +51,4 @@ functions:
 
 resources:
   - ${file(./serverless-api-gateway.yml)}
+  - ${file(./serverless-dynamo.yml)}

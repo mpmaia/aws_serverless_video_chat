@@ -1,0 +1,64 @@
+Resources:
+  ContactDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: contactUserId
+          AttributeType: S
+        - AttributeName: contactEmail
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: contactUserId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TableName: ${self:provider.environment.CONTACTS_TABLE}
+      GlobalSecondaryIndexes:
+        - IndexName: ${self:provider.environment.USER_ID_INDEX}
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: contactEmail
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  UserDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: ${self:provider.environment.USERS_TABLE}
+      GlobalSecondaryIndexes:
+        - IndexName: ${self:provider.environment.USER_EMAIL_INDEX}
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  ConnectionsDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: connectionId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TableName: ${self:provider.environment.CONNECTIONS_TABLE}

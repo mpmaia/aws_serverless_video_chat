@@ -1,0 +1,20 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-videochat-dev-213356-authRole",
+      "UnauthRoleArn": "arn:aws:iam::093613943946:role/amplify-videochat-dev-213356-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::093613943946:role/amplify-videochat-dev-213356-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-videochat-dev-213356-deployment",
+      "UnauthRoleName": "amplify-videochat-dev-213356-unauthRole",
+      "StackName": "amplify-videochat-dev-213356",
+      "StackId": "arn:aws:cloudformation:us-east-1:093613943946:stack/amplify-videochat-dev-213356/5721a130-e9bb-11eb-9d14-0eac0ccc6c9d",
+      "AmplifyAppId": "d259h2xeq4dl5h"
+    },
+    "categories": {
+      "auth": {
+        "videochat28c06043": {}
+      }
+    }
+  }
+}

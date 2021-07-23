@@ -22,6 +22,7 @@ provider:
     CONNECTIONS_TABLE: ${self:service}-connections-${self:provider.stage}
     USER_ID_INDEX: UserIdIndex
     USER_EMAIL_INDEX: UserIdIndex
+    USER_POOL: arn:aws:cognito-idp:us-east-1:************:userpool/us-east-1_dk8prY4fv
 
 iamRoleStatements:
 #    - Effect: "Allow"
@@ -48,7 +49,17 @@ iamRoleStatements:
 functions:
   hello:
     handler: src/handler.hello
-
+    events:
+      - http:
+          path: hello
+          method: get
+          cors: true
+          integration: lambda
+          authorizer:
+            name: authorizer
+            arn: ${self:provider.environment.USER_POOL}
+            claims:
+              - email
 resources:
   - ${file(./serverless-api-gateway.yml)}
   - ${file(./serverless-dynamo.yml)}

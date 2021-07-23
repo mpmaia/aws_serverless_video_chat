@@ -52,14 +52,107 @@ functions:
     events:
       - http:
           path: hello
+          cors: true
+          method: get
+          authorizer:
+            arn: ${self:provider.environment.USER_POOL}
+
+  GetContacts:
+    handler: src/lambda/getContacts.handler
+    events:
+      - http:
           method: get
           cors: true
-          integration: lambda
+          path: contacts
           authorizer:
-            name: authorizer
             arn: ${self:provider.environment.USER_POOL}
-            claims:
-              - email
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+
+  AddContact:
+    handler: src/lambda/addContact.handler
+    events:
+      - http:
+          method: post
+          path: contacts
+          cors: true
+          authorizer:
+            arn: ${self:provider.environment.USER_POOL}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}/index/${self:provider.environment.USER_EMAIL_INDEX}
+
+  CreateUser:
+    handler: src/lambda/createUser.handler
+    events:
+      - http:
+          method: get
+          path: user
+          cors: true
+          authorizer:
+            arn: ${self:provider.environment.USER_POOL}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}
+
+  DeleteContact:
+    handler: src/lambda/deleteContact.handler
+    events:
+      - http:
+          method: delete
+          path: contacts/{contactId}
+          cors: true
+          authorizer:
+            arn: ${self:provider.environment.USER_POOL}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONTACTS_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+
 resources:
   - ${file(./serverless-api-gateway.yml)}
   - ${file(./serverless-dynamo.yml)}

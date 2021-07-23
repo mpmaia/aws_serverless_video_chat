@@ -21,9 +21,7 @@ function App() {
                     },
                 };
                 axios.get(BASE_URL + "/hello", config).then(resp => {
-                    if(resp.status===200) {
-                        setHello(resp.data.body);
-                    }
+                    setHello(JSON.stringify(resp.data, null, 2));
                 });
             }
         });

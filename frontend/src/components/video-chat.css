@@ -1,0 +1,14 @@
+
+.video-chat {
+    display: flex;
+    flex-flow: row;
+    padding: 5px;
+}
+
+.video-chat video {
+    boder: 1px black;
+    width: 50%;
+    height: 50%;
+    max-width: 800px;
+    max-height: 600px;
+}

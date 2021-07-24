@@ -22,22 +22,29 @@ provider:
     CONNECTIONS_TABLE: ${self:service}-connections-${self:provider.stage}
     USER_ID_INDEX: UserIdIndex
     USER_EMAIL_INDEX: UserIdIndex
+    # CONFIGURE THE ITEMS BELOW FOR YOUR ENVIRONMENT BELOW
     USER_POOL: arn:aws:cognito-idp:us-east-1:************:userpool/us-east-1_dk8prY4fv
+    JWKS_URL: https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
 
-iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
+  tracing:
+    lambda: true
+    apiGateway: true
+
+  logs:
+    websocket: true
+
+  websocketsApiName: video-chat-websocket-api
+  websocketsApiRouteSelectionExpression: $request.body.action
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - codedeploy:*
+            - logs:*
+          Resource:
+            - '*'
 
 #package:
 #  patterns:
@@ -56,6 +63,14 @@ functions:
           method: get
           authorizer:
             arn: ${self:provider.environment.USER_POOL}
+
+  AuthWS:
+    handler: src/auth/wsAuthorizer.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cloudwatch:PutMetricData
+        Resource: '*'
 
   GetContacts:
     handler: src/lambda/getContacts.handler
@@ -152,6 +167,48 @@ functions:
         Action:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+
+  connectionHandler:
+    handler: src/lambda/webSocket.handler
+    events:
+      - websocket:
+          route: $connect
+          authorizer:
+            name: AuthWS
+            identitySource:
+              - 'route.request.querystring.Auth'
+      - websocket:
+          route: $disconnect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:PutItem
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+      - Effect: Allow
+        Action:
+          - execute-api:ManageConnections
+          - execute-api:Invoke
+        Resource: arn:aws:execute-api:${self:provider.region}:*:*/${self:provider.stage}/*
+
+  defaultHandler:
+    handler: src/lambda/webSocket.defaultHandler
+    events:
+      - websocket:
+          route: $default
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
+      - Effect: Allow
+        Action:
+          - execute-api:ManageConnections
+          - execute-api:Invoke
+        Resource: arn:aws:execute-api:${self:provider.region}:*:*/${self:provider.stage}/*
 
 resources:
   - ${file(./serverless-api-gateway.yml)}

@@ -45,7 +45,7 @@ const Navbar = ({ onNavOpen, ...rest }: NavBarProps) => {
                         <MenuIcon />
                     </IconButton>
                 </Hidden>
-                <Typography>Video Chat Sample</Typography>
+                <Typography>Video Chat</Typography>
                 <Box style={{ flexGrow: 1 }} />
                 <NavBarLogout {...rest}/>
             </Toolbar>

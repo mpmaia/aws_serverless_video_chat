@@ -13,6 +13,8 @@ import {WsMessage} from "../model/Messages";
 import {WSS_URL} from "../env";
 import {useWebSocket} from "react-use-websocket/dist/lib/use-websocket";
 import {LayoutContainer, LayoutContent, LayoutRoot, LayoutWrapper} from "./Layout";
+import {PeerConnectionAdapter, VideoChat} from "./VideoChat";
+import {ChatMessage, TextChat} from "./TextChat";
 
 const Main = () => {
     const [isMobileNavOpen, setMobileNavOpen] = useState(false);
@@ -24,6 +26,9 @@ const Main = () => {
     const contactsAPI = useRef<ContactsAPI | null>(null);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const peerConnection = useRef<PeerConnectionAdapter | null>(null);
+    const [rtcConnectionState, setRtcConnectionState] = useState<RTCIceConnectionState>("closed");
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
     const {
         sendMessage,
@@ -42,6 +47,30 @@ const Main = () => {
                         setContacts(contacts => {
                             return contacts.map(contact => contact.contactUserId === message.payload.userId?{...contact, online: message.type==="connected"}:contact);
                         });
+                        break;
+                    case "offer":
+                        console.log("Received offer from " + message.from, message.payload);
+                        if(peerConnection.current!=null && message.from) {
+                            await peerConnection.current.setOffer({descriptor: message.payload, from: message.from});
+                        } else {
+                            setMessage("Invalid connection state");
+                        }
+                        break;
+                    case "answer":
+                        console.log("Received answer from " + message.from, message.payload);
+                        if(peerConnection.current!=null && message.from) {
+                            await peerConnection.current.setAnswer({descriptor: message.payload, from: message.from});
+                        } else {
+                            setMessage("Invalid connection state");
+                        }
+                        break;
+                    case "ice":
+                        console.log("Received ice: ", message.payload);
+                        if(peerConnection.current!=null) {
+                            await peerConnection.current.addIceCandidate(message.payload);
+                        } else {
+                            setMessage("Invalid connection state");
+                        }
                         break;
                 }
             } catch (e) {
@@ -119,6 +148,70 @@ const Main = () => {
         }
     }, []);
 
+    const onContactChange = useEffect(() => {
+        if(selectedContact && peerConnection.current) {
+            peerConnection.current.call(selectedContact).catch(e => {
+                console.log(e);
+                setMessage(e.message);
+            });
+        }
+    }, [selectedContact, peerConnection]);
+
+    const onCandidate = useCallback((remoteContact: string, candidate: RTCIceCandidate) => {
+        console.log("onCandidate to " + remoteContact, candidate);
+        const wsMessage = {
+            action: 'rtc',
+            destination: remoteContact,
+            type: 'ice',
+            payload: candidate.toJSON()
+        };
+        sendMessage(JSON.stringify(wsMessage));
+    }, []);
+
+    const onMessage = useCallback((user: string, message: string) => {
+        setMessages((chatMessages) => [JSON.parse(message), ...chatMessages]);
+    }, []);
+
+    const sendChatMessage = useCallback((text: string) => {
+        const user: string = currentUser && currentUser.email ? currentUser.email : "unknown user";
+        if(peerConnection.current) {
+            var message: ChatMessage = {message: text, user};
+            peerConnection.current.sendMessage(user, JSON.stringify(message));
+            setMessages((chatMessages) => [message, ...chatMessages]);
+        }
+    }, [peerConnection, currentUser]);
+
+    const onOffer = useCallback((userId: string, offer: RTCSessionDescriptionInit) => {
+        console.log("onOffer: ", userId, offer);
+        const wsMessage: WsMessage = {
+            action: 'rtc',
+            destination: userId,
+            type: 'offer',
+            payload: offer
+        };
+        sendMessage(JSON.stringify(wsMessage));
+    }, []);
+
+    const onAnswer = useCallback((userId: string, answer: RTCSessionDescriptionInit) => {
+        console.log("onAnswer: ", userId, answer);
+        const wsMessage = {
+            action: 'rtc',
+            destination: userId,
+            type: 'answer',
+            payload: answer
+        };
+        sendMessage(JSON.stringify(wsMessage));
+    }, []);
+
+    const onChangeConnectionState = useCallback((connectionState: RTCIceConnectionState) => {
+        setRtcConnectionState(connectionState);
+        switch(connectionState) {
+            case "disconnected":
+            case "closed":
+                setSelectedContact(null);
+        }
+    }, []);
+
     return (
         <LayoutRoot>
             <Navbar onNavOpen={() => setMobileNavOpen(true)} authenticated={authenticated} logout={logout} />
@@ -136,6 +229,14 @@ const Main = () => {
             <LayoutWrapper>
                 <LayoutContainer>
                     <LayoutContent>
+                        <VideoChat enabled={authenticated}
+                                   onError={(m) => setMessage(m)} onCandidate={onCandidate}
+                                   onOffer={onOffer} onAnswer={onAnswer} onMessage={onMessage}
+                                   onChangeConnectionState={onChangeConnectionState}
+                                   getPeerConnectionAdapter={(pc) => peerConnection.current = pc}/>
+                        {rtcConnectionState=="connected"?(
+                             <TextChat messages={messages} sendChatMessage={sendChatMessage}/>
+                        ): null}
                         <AlertDialog open={message!==null} message={message!} onClose={() => setMessage(null)}/>
                     </LayoutContent>
                 </LayoutContainer>

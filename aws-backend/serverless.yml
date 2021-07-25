@@ -54,15 +54,6 @@ provider:
 #    - include-me-dir/**
 
 functions:
-  hello:
-    handler: src/handler.hello
-    events:
-      - http:
-          path: hello
-          cors: true
-          method: get
-          authorizer:
-            arn: ${self:provider.environment.USER_POOL}
 
   AuthWS:
     handler: src/auth/wsAuthorizer.handler

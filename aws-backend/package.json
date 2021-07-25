@@ -7,7 +7,6 @@
     "axios": "^0.21.1",
     "jsonwebtoken": "^8.5.1",
     "jwk-to-pem": "^2.0.5",
-    "middy": "^0.36.0",
     "source-map-support": "^0.5.19",
     "uuid": "^3.3.2",
     "winston": "^3.2.1"
